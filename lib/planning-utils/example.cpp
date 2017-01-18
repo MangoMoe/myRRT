@@ -2,12 +2,12 @@
 #include <cstdio>
 #include <cstdlib>
 #include <deque>
-#include "planning-utils/libs/cxxopts.hpp"
-#include "planning-utils/geom/Coord.hpp"
-#include "planning-utils/geom/Rect.hpp"
-#include "planning-utils/geom/utils.hpp"
-#include "planning-utils/utils.hpp"
-#include "planning-utils/display.hpp"
+#include "libs/cxxopts.hpp"
+#include "geom/Coord.hpp"
+#include "geom/Rect.hpp"
+#include "geom/utils.hpp"
+#include "utils.hpp"
+#include "display.hpp"
 
 using namespace std;
 
@@ -31,11 +31,6 @@ Coord randomOpenAreaPoint(int width, int height, vector<vector<bool>>& obstacleH
 	}
 
 	return point;
-}
-
-void findNextRRTPoint()
-{
-
 }
 
 int main(int argc, char* argv[]) {
@@ -71,14 +66,7 @@ int main(int argc, char* argv[]) {
 	auto pointAddFrequency = 5.0;
 	auto pointAddInterval = 1.0 / pointAddFrequency;
 
-	auto remainderCallback = []() {
-    auto currentTime = glfwGetTime();
-		if (currentTime - lastPointAdd >= pointAddInterval) {
-      findNextRRTPoint();
-    }
-  };
-  /*
-  [&path, &lastPointAdd, &pointAddInterval, &width, &height, &obstacleHash]() { // TODO overwrite this lambda function with rrt algorithm
+	auto remainderCallback = [&path, &lastPointAdd, &pointAddInterval, &width, &height, &obstacleHash]() {
 		auto currentTime = glfwGetTime();
 		if (currentTime - lastPointAdd >= pointAddInterval) {
 			lastPointAdd = currentTime;
@@ -88,15 +76,10 @@ int main(int argc, char* argv[]) {
 				while (lineIntersectsObstacles(newPoint, path.back(), &obstacleHash, width, height)) {
 					newPoint = randomOpenAreaPoint(width, height, obstacleHash);
 				}
-        path.push_back(newPoint);
 			}
-      else
-      {
-  			path.push_back(randomOpenAreaPoint(width, height, obstacleHash));
-      }
+			path.push_back(randomOpenAreaPoint(width, height, obstacleHash));
 		}
 	};
-  */
 
 	displayLoop(window, 30.0, displayCallback, remainderCallback);
 }
