@@ -1,3 +1,3 @@
 [submodule "planning-utils"]
-	path = planning-utils
+	path = lib/planning-utils
 	url = https://github.com/brychanrobot/planning-utils.git
