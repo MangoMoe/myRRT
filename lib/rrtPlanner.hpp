@@ -15,16 +15,15 @@ private:
   vector<vector<bool>>& obstacleHash;
   int width, height;
   set<Coord> myCoords;
+  final double MAX_DIST = 2.0;  // maximum distance between nodes
 public:
-  deque<Coord> getPath();
-  void nextIteration();
-  bool pathComplete();
   rrtPlanner(Coord start, Coord goal, int newWidth, int newHeight, vector<vector<bool>>& newObstacleHash);
   ~rrtPlanner();
-  Coord findNextRRTPoint();
-  Coord getUnusedRandomNode();
-  shared_ptr<Node> getNearestNode()
-  {
-    
-  }
+  deque<Coord> getPath();
+  bool pathComplete();
+  void nextIteration();
+  Coord getCoordInDerection(Coord nodeCoord, Coord goalCoord);
+  shared_ptr<Node> getNearestNode(Coord coord);
+  shared_ptr<Node> getNearestNode(Coord coord, shared_ptr<Node> node, shared_ptr<Node> curClosesestNode, double curShortDist);
+  Coord getUnusedRandomCoord();
 }

@@ -47,35 +47,107 @@ bool rrtPlanner::pathComplete()
 
 void rrtPlanner::nextIteration()
 {
-  while(!pathCompleteBool)
+  //while(!pathCompleteBool)
+  if(!pathCompleteBool)
   {
     Coord sample;
     switch(sampleGoal)
     {
-      case 0 : sample = (shared_ptr<Node>)&goalNode;
+      case 0 : sample = goalNode.coord;
       break;
       default :
       case 5 : sampleGoal = 0;
       case 4 :
       case 3 :
       case 2 :
-      case 1 : sample = getUnusedRandomNode();
+      case 1 : sample = getUnusedRandomCoord();
       break;
     }
 
-    // TODO add point coordinates to the set of known coordinates
+    shared_ptr<Node> closestNode = getNearestNode(sample);
+
+    sample = getCoordInDerection(closestNode.coord, sample);  // trim the sample to the maximum distance
+
+    if(!lineIntersectsObstacles(closestNode.coord, sample, obstacleHash, width, height));
+    { // WOOOOOT this is a valid part of our tree, lets add it to the family
+
+      myCoords.insert(sample);  // we know this coord is in our tree
+      if(sample == goalNode.coord)
+      {
+        closestNode->children.push_back(goalNode);
+        goalNode.parent = closestNode;
+        pathCompleteBool = true;
+      }
+      else
+      {
+        closestNode->children.push_back(new Node(sample, closestNode)); // make him a child of the parent
+      }
+    }
+    else  // OH NOOOOOO the line intersects an obstacle darn, just give up
+    {
+      return; // empty handed, no new nodes were added in the calling of this function
+    }
   }
 }
 
-shared_ptr<Node> rrtPlanner::getNearestNode()
+
+
+Coord rrtPlanner::getCoordInDerection(Coord nodeCoord, Coord goalCoord)
 {
-  
+  if(euclideanDistance(nodeCoord, goalCoord) <= MAX_DIST)
+  {
+    return goalCoord; // goalCoord is well within range, it is what we want
+  }
+  else  // return a coord that is closer to the node
+  {
+    double angle = angleBetweenCoords(nodeCoord, goalCoord);
+    return new Coord(nodeCoord.x + cos(angle) * MAX_DIST, nodeCoord.y + sin(angle) * MAX_DIST);
+  }
 }
 
-Coord rrtPlanner::getUnusedRandomNode()
+shared_ptr<Node> rrtPlanner::getNearestNode(Coord coord)
+{
+  //shared_ptr<Node> nearestNode = (shared_ptr<Node>)&start;
+  return getNearestNode(coord, (shared_ptr<Node>)&start, (shared_ptr<Node>)&start, euclideanDistance(start.coord, coord));
+}
+
+shared_ptr<Node> rrtPlanner::getNearestNode(Coord coord, shared_ptr<Node> node, shared_ptr<Node> curClosesestNode, double curShortDist) //recursive
+{
+  // first initialize
+  shared_ptr<Node> temp = curClosesestNode;
+
+  // Then check if this node is closer to the point we want
+  if(euclideanDistance(node->coord, coord) < curShortDist)
+  {
+    curShortDist = euclideanDistance(node->coord, coord);
+    curClosesestNode = node;
+  }
+
+  //Then check the children if they are closer
+  if(!node->children.empty()) // base case: node has no children (leaf node)
+  {
+    for(auto child : node->children)
+    {
+      temp = getNearestNode(coord, child, curClosesestNode, curShortDist);
+      if(temp == curClosesestNode)  // the call to that child didn't find a closer node
+      {
+        continue;
+      }
+      else  // update the values
+      {
+        curClosesestNode = temp;
+        curShortDist = euclideanDistance(temp->coord, coord);
+      }
+    }
+  }
+
+  return curClosesestNode;  // this should now be pointing to the closest node to the coordinate
+}
+
+Coord rrtPlanner::getUnusedRandomCoord()  //TODO make this actually pick a point not in the obstacles
 {
   Coord potentialPoint = randomPoint(width, height);
-  while(myCoords.find(potentialPoint) != myCoords.end())
+  while(myCoords.find(potentialPoint) != myCoords.end() && obstacleHash[(int)potentialPoint.y][(int)potentialPoint.x])
   {
     potentialPoint = randomPoint(width, height);
   }

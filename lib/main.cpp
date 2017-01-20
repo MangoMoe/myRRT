@@ -8,6 +8,7 @@
 #include "planning-utils/geom/utils.hpp"
 #include "planning-utils/utils.hpp"
 #include "planning-utils/display.hpp"
+#include "rrtPlanner.hpp"
 
 using namespace std;
 
@@ -33,11 +34,6 @@ Coord randomOpenAreaPoint(int width, int height, vector<vector<bool>>& obstacleH
 	return point;
 }
 
-void findNextRRTPoint()
-{
-
-}
-
 int main(int argc, char* argv[]) {
 	srand(time(0));
 
@@ -45,6 +41,7 @@ int main(int argc, char* argv[]) {
 	int height = 700;
 	bool isFullscreen = false;
 	int monitorNum = 0;
+
 
 	// clang-format off
 	cxxopts::Options options("Example Planner", "A cool program for cool things");
@@ -65,6 +62,10 @@ int main(int argc, char* argv[]) {
 
 	deque<Coord> path;
 
+  Coord start = randomOpenAreaPoint(width, height, obstacleHash);
+  Coord goal = randomOpenAreaPoint(width, height, obstacleHash);
+  rrtPlanner planner = new rrtPlanner(start, goal, width, height, obstacleHash);
+
 	auto displayCallback = [&path, &obstacleRects]() { display(path, obstacleRects); };
 
 	auto lastPointAdd = glfwGetTime();
@@ -74,8 +75,11 @@ int main(int argc, char* argv[]) {
 	auto remainderCallback = []() {
     auto currentTime = glfwGetTime();
 		if (currentTime - lastPointAdd >= pointAddInterval) {
-      findNextRRTPoint();
+      lastPointAdd = currentTime;
+      planner.nextIteration();
+      path = planner.getPath();
     }
+
   };
   /*
   [&path, &lastPointAdd, &pointAddInterval, &width, &height, &obstacleHash]() { // TODO overwrite this lambda function with rrt algorithm
