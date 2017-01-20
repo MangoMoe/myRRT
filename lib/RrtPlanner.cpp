@@ -1,51 +1,56 @@
-#include "rrtPlanner.hpp"
+#include "RrtPlanner.hpp"
 
-rrtPlanner::rrtPlanner(Coord start, Coord goal, int newWidth, int newHeight, vector<vector<bool>>& newObstacleHash)
+using namespace std;
+
+RrtPlanner::RrtPlanner(Coord start, Coord goal, int newWidth, int newHeight, vector<vector<bool>>* newObstacleHash)
 {
   sampleGoal = 0;
   pathCompleteBool = false;
 
-  startNode = new Node();
+  // startNode();
+  // goalNode();
+  startNode = make_shared<Node>();
+  goalNode = make_shared<Node>();
 
-  startNode.coord = start;
-  startNode.parent = (std::shared_ptr<Node>)&startNode;
-  myCoords.insert(startNode.coord);
+  startNode->coord = start;
+  startNode->parent = startNode;
+  myCoords.insert(startNode->coord);
 
-  goalNode.coord = goal;
-  goalNode.parent = (std::shared_ptr<Node>)&goalNode;
+  goalNode->coord = goal;
+  goalNode->parent = goalNode;
 
   width = newWidth;
   height = newHeight;
   obstacleHash = newObstacleHash;
 }
 
-rrtPlanner::~rrtPlanner()
+RrtPlanner::~RrtPlanner()
 {
     //TODO make a destructor
 }
 
-deque<Coord> rrtPlanner::getPath()
+deque<Coord> RrtPlanner::getPath()
 {
-  deque<Coord> returnValue = new deque<Coord>();
+  deque<Coord> returnValue; // = new deque<Coord>();
   if(pathComplete())
   {
-    returnValue.push_front(goalNode.coord); // start with the goal
-    shared_ptr<Node> currentNode = goalNode.parent;
+    returnValue.push_front(goalNode->coord); // start with the goal
+    shared_ptr<Node> currentNode = goalNode->parent;
     do
     {
-      returnValue.push_front(currentNode->coord) // TODO pass by pointer instead?
+      returnValue.push_front(currentNode->coord); // TODO pass by pointer instead?
       currentNode = currentNode->parent;
-    } while(currentNode.parent != (shared_ptr<Node>)&currentNode);  // if the parent is itself, we have reached the root
+    } while(currentNode->parent != currentNode);  // if the parent is itself, we have reached the root
   }
   return returnValue;
 }
 
-bool rrtPlanner::pathComplete()
+bool RrtPlanner::pathComplete()
 {
   return pathCompleteBool;
 }
 
-void rrtPlanner::nextIteration()
+void RrtPlanner::nextIteration()
 {
   //while(!pathCompleteBool)
   if(!pathCompleteBool)
@@ -53,7 +58,7 @@ void rrtPlanner::nextIteration()
     Coord sample;
     switch(sampleGoal)
     {
-      case 0 : sample = goalNode.coord;
+      case 0 : sample = goalNode->coord;
       break;
       default :
       case 5 : sampleGoal = 0;
@@ -66,21 +71,21 @@ void rrtPlanner::nextIteration()
 
     shared_ptr<Node> closestNode = getNearestNode(sample);
 
-    sample = getCoordInDerection(closestNode.coord, sample);  // trim the sample to the maximum distance
+    sample = getCoordInDerection(closestNode->coord, sample);  // trim the sample to the maximum distance
 
-    if(!lineIntersectsObstacles(closestNode.coord, sample, obstacleHash, width, height));
+    if(!lineIntersectsObstacles(closestNode->coord, sample, obstacleHash, width, height))
     { // WOOOOOT this is a valid part of our tree, lets add it to the family
 
       myCoords.insert(sample);  // we know this coord is in our tree
-      if(sample == goalNode.coord)
+      if(sample == goalNode->coord)
       {
         closestNode->children.push_back(goalNode);
-        goalNode.parent = closestNode;
+        goalNode->parent = closestNode;
         pathCompleteBool = true;
       }
       else
       {
-        closestNode->children.push_back(new Node(sample, closestNode)); // make him a child of the parent
+        closestNode->children.push_back(make_shared<Node>(sample, closestNode)); // make him a child of the parent
       }
     }
     else  // OH NOOOOOO the line intersects an obstacle darn, just give up
@@ -92,7 +97,7 @@ void rrtPlanner::nextIteration()
 
 
 
-Coord rrtPlanner::getCoordInDerection(Coord nodeCoord, Coord goalCoord)
+Coord RrtPlanner::getCoordInDerection(Coord nodeCoord, Coord goalCoord)
 {
   if(euclideanDistance(nodeCoord, goalCoord) <= MAX_DIST)
   {
@@ -101,17 +106,17 @@ Coord rrtPlanner::getCoordInDerection(Coord nodeCoord, Coord goalCoord)
   else  // return a coord that is closer to the node
   {
     double angle = angleBetweenCoords(nodeCoord, goalCoord);
-    return new Coord(nodeCoord.x + cos(angle) * MAX_DIST, nodeCoord.y + sin(angle) * MAX_DIST);
+    return Coord(nodeCoord.x + cos(angle) * MAX_DIST, nodeCoord.y + sin(angle) * MAX_DIST);
   }
 }
 
-shared_ptr<Node> rrtPlanner::getNearestNode(Coord coord)
+shared_ptr<Node> RrtPlanner::getNearestNode(Coord coord)
 {
   //shared_ptr<Node> nearestNode = (shared_ptr<Node>)&start;
-  return getNearestNode(coord, (shared_ptr<Node>)&start, (shared_ptr<Node>)&start, euclideanDistance(start.coord, coord));
+  return getNearestNode(coord, startNode, startNode, euclideanDistance(startNode->coord, coord));
 }
 
-shared_ptr<Node> rrtPlanner::getNearestNode(Coord coord, shared_ptr<Node> node, shared_ptr<Node> curClosesestNode, double curShortDist) //recursive
+shared_ptr<Node> RrtPlanner::getNearestNode(Coord coord, shared_ptr<Node> node, shared_ptr<Node> curClosesestNode, double curShortDist) //recursive
 {
   // first initialize
   shared_ptr<Node> temp = curClosesestNode;
@@ -144,10 +149,10 @@ shared_ptr<Node> rrtPlanner::getNearestNode(Coord coord, shared_ptr<Node> node, 
   return curClosesestNode;  // this should now be pointing to the closest node to the coordinate
 }
 
-Coord rrtPlanner::getUnusedRandomCoord()  //TODO make this actually pick a point not in the obstacles
+Coord RrtPlanner::getUnusedRandomCoord()  //TODO make this actually pick a point not in the obstacles
 {
   Coord potentialPoint = randomPoint(width, height);
-  while(myCoords.find(potentialPoint) != myCoords.end() && obstacleHash[(int)potentialPoint.y][(int)potentialPoint.x])
+  while(myCoords.find(potentialPoint) != myCoords.end() && (*obstacleHash)[(int)potentialPoint.y][(int)potentialPoint.x])
   {
     potentialPoint = randomPoint(width, height);
   }

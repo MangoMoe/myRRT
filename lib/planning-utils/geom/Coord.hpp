@@ -35,5 +35,15 @@ class Coord {
 		this->y = y;
 	}
 
+  bool operator==(const Coord &other) const {
+    return (x == other.x && y == other.y);
+    // Compare the values, and return a bool result.
+  }
+
+  friend bool operator<(const Coord& l, const Coord& r)
+  {
+    return l.x < r.x; // TODO fix this to use distance from origin or somethign
+  }
+
 	point getBoostPoint() { return point(this->x, this->y); }
 };

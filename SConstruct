@@ -13,6 +13,8 @@ env.VariantDir('build', 'lib', duplicate=0)
 
 objects = [
 	env.Object('build/planning-utils/geom/Rect.cpp'),
+	env.Object('build/RrtPlanner.cpp'),
+	# env.Object('build/planning-utils/Node.hpp')
 
 	# env.Object('build/planning/Node.cpp'),
 

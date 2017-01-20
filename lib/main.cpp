@@ -8,16 +8,18 @@
 #include "planning-utils/geom/utils.hpp"
 #include "planning-utils/utils.hpp"
 #include "planning-utils/display.hpp"
-#include "rrtPlanner.hpp"
+#include "RrtPlanner.hpp"
 
 using namespace std;
 
 const double OBSTACLE_PADDING = 5;
 
-void display(deque<Coord>& path, vector<shared_ptr<Rect>>& obstacleRects) {
+void display(deque<Coord>& path, vector<shared_ptr<Rect>>& obstacleRects, RrtPlanner& planner ) {
 	drawObstacles(&obstacleRects, OBSTACLE_PADDING, HSL(275, 1.0, 0.5));
 
 	drawPath(path, HSL(100, 1.0, 0.3), HSL(150, 1.0, 0.5));
+
+  drawTree(planner.startNode, HSL(25, 1.0, 0.5));
 
 	if (path.size() > 1) {
 		drawPoint(path.front(), 20, HSL(25, 1.0, 0.5));
@@ -64,19 +66,20 @@ int main(int argc, char* argv[]) {
 
   Coord start = randomOpenAreaPoint(width, height, obstacleHash);
   Coord goal = randomOpenAreaPoint(width, height, obstacleHash);
-  rrtPlanner planner = new rrtPlanner(start, goal, width, height, obstacleHash);
+  RrtPlanner planner(start, goal, width, height, &obstacleHash);
 
-	auto displayCallback = [&path, &obstacleRects]() { display(path, obstacleRects); };
+	auto displayCallback = [&path, &obstacleRects, &planner]() { display(path, obstacleRects, planner); };
 
 	auto lastPointAdd = glfwGetTime();
 	auto pointAddFrequency = 5.0;
 	auto pointAddInterval = 1.0 / pointAddFrequency;
 
-	auto remainderCallback = []() {
+	auto remainderCallback = [&lastPointAdd, &pointAddInterval, &planner, &path]() {
     auto currentTime = glfwGetTime();
 		if (currentTime - lastPointAdd >= pointAddInterval) {
       lastPointAdd = currentTime;
       planner.nextIteration();
+
       path = planner.getPath();
     }
 
