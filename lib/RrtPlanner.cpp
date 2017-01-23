@@ -41,6 +41,7 @@ deque<Coord> RrtPlanner::getPath()
       returnValue.push_front(currentNode->coord); // TODO pass by pointer instead?
       currentNode = currentNode->parent;
     } while(currentNode->parent != currentNode);  // if the parent is itself, we have reached the root
+    returnValue.push_front(currentNode->parent->coord); // add start coordinate
   }
   return returnValue;
 }
@@ -59,15 +60,26 @@ void RrtPlanner::nextIteration()
     switch(sampleGoal)
     {
       case 0 : sample = goalNode->coord;
+        sampleGoal++;
       break;
       default :
       case 5 : sampleGoal = 0;
+        sample = getUnusedRandomCoord();
+        break;
       case 4 :
       case 3 :
       case 2 :
       case 1 : sample = getUnusedRandomCoord();
+        sampleGoal++;
       break;
     }
+
+    // sample = getUnusedRandomCoord();
+    //
+    // if(euclideanDistance(sample, goalNode->coord) < 20.0)
+    // {
+    //   sample = goalNode->coord;
+    // }
 
     shared_ptr<Node> closestNode = getNearestNode(sample);
 

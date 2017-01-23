@@ -18,10 +18,10 @@ private:
   vector<vector<bool>>* obstacleHash;
   int width, height;
   set<Coord> myCoords;
-  const double MAX_DIST = 2.0;  // maximum distance between nodes
+  const double MAX_DIST = 0.10;  // maximum distance between nodes
 public:
   shared_ptr<Node> startNode, goalNode;
-  
+
   RrtPlanner(Coord start, Coord goal, int newWidth, int newHeight, vector<vector<bool>>* newObstacleHash);
   ~RrtPlanner();
   deque<Coord> getPath();

@@ -21,6 +21,9 @@ void display(deque<Coord>& path, vector<shared_ptr<Rect>>& obstacleRects, RrtPla
 
   drawTree(planner.startNode, HSL(25, 1.0, 0.5));
 
+  drawPoint(planner.startNode->coord, 10, HSL(25, 1.0, 0.5));
+  drawPoint(planner.goalNode->coord, 10, HSL(50, 1.0, 0.5));
+
 	if (path.size() > 1) {
 		drawPoint(path.front(), 20, HSL(25, 1.0, 0.5));
 		drawPoint(path.back(), 20, HSL(50, 1.0, 0.5));
@@ -80,6 +83,11 @@ int main(int argc, char* argv[]) {
       lastPointAdd = currentTime;
       planner.nextIteration();
 
+      path = planner.getPath();
+    }
+    else
+    {
+      planner.nextIteration();
       path = planner.getPath();
     }
 
