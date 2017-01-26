@@ -7,14 +7,12 @@ RrtPlanner::RrtPlanner(Coord start, Coord goal, int newWidth, int newHeight, vec
   sampleGoal = 0;
   pathCompleteBool = false;
 
-  // startNode();
-  // goalNode();
   startNode = make_shared<Node>();
   goalNode = make_shared<Node>();
 
   startNode->coord = start;
   startNode->parent = startNode;
-  myCoords.insert(startNode->coord);
+  myRtree.insert(RtreeValue(startNode->coord.getBoostPoint(),startNode)); // insert the starting node into the list of known nodes
 
   goalNode->coord = goal;
   goalNode->parent = goalNode;
@@ -31,7 +29,7 @@ RrtPlanner::~RrtPlanner()
 
 deque<Coord> RrtPlanner::getPath()
 {
-  deque<Coord> returnValue; // = new deque<Coord>();
+  deque<Coord> returnValue;
   if(pathComplete())
   {
     returnValue.push_front(goalNode->coord); // start with the goal
@@ -53,8 +51,7 @@ bool RrtPlanner::pathComplete()
 
 void RrtPlanner::nextIteration()
 {
-  //while(!pathCompleteBool)
-  if(!pathCompleteBool)
+  if(!pathComplete())
   {
     Coord sample;
     switch(sampleGoal)
@@ -64,17 +61,18 @@ void RrtPlanner::nextIteration()
       break;
       default :
       case 5 : sampleGoal = 0;
-        sample = getUnusedRandomCoord();
+        sample = randomPoint(width, height);
         break;
       case 4 :
       case 3 :
       case 2 :
-      case 1 : sample = getUnusedRandomCoord();
+      case 1 : sample = randomPoint(width, height);
         sampleGoal++;
       break;
     }
 
-    // sample = getUnusedRandomCoord();
+    // Random sampling, but if guess close to goal, go there.
+    // sample = randomPoint(width, height);
     //
     // if(euclideanDistance(sample, goalNode->coord) < 20.0)
     // {
@@ -87,20 +85,21 @@ void RrtPlanner::nextIteration()
 
     if(!lineIntersectsObstacles(closestNode->coord, sample, obstacleHash, width, height))
     { // WOOOOOT this is a valid part of our tree, lets add it to the family
-
-      myCoords.insert(sample);  // we know this coord is in our tree
       if(sample == goalNode->coord)
       {
         closestNode->children.push_back(goalNode);
         goalNode->parent = closestNode;
+        myRtree.insert(RtreeValue(sample.getBoostPoint(), goalNode));
         pathCompleteBool = true;
       }
       else
       {
-        closestNode->children.push_back(make_shared<Node>(sample, closestNode)); // make him a child of the parent
+        shared_ptr<Node> newGuy = make_shared<Node>(sample, closestNode);
+        myRtree.insert(RtreeValue(sample.getBoostPoint(), newGuy));
+        closestNode->children.push_back(newGuy); // make him a child of the parent
       }
     }
-    else  // OH NOOOOOO the line intersects an obstacle darn, just give up
+    else  // OH NOOOOOO the line intersects an obstacle. Darn, just give up
     {
       return; // empty handed, no new nodes were added in the calling of this function
     }
@@ -124,49 +123,8 @@ Coord RrtPlanner::getCoordInDerection(Coord nodeCoord, Coord goalCoord)
 
 shared_ptr<Node> RrtPlanner::getNearestNode(Coord coord)
 {
-  //shared_ptr<Node> nearestNode = (shared_ptr<Node>)&start;
-  return getNearestNode(coord, startNode, startNode, euclideanDistance(startNode->coord, coord));
-}
+  vector<RtreeValue> rtreeQueryResults;
+  myRtree.query(bgi::nearest(coord.getBoostPoint(), 1), back_inserter(rtreeQueryResults));
 
-shared_ptr<Node> RrtPlanner::getNearestNode(Coord coord, shared_ptr<Node> node, shared_ptr<Node> curClosesestNode, double curShortDist) //recursive
-{
-  // first initialize
-  shared_ptr<Node> temp = curClosesestNode;
-
-  // Then check if this node is closer to the point we want
-  if(euclideanDistance(node->coord, coord) < curShortDist)
-  {
-    curShortDist = euclideanDistance(node->coord, coord);
-    curClosesestNode = node;
-  }
-
-  //Then check the children if they are closer
-  if(!node->children.empty()) // base case: node has no children (leaf node)
-  {
-    for(auto child : node->children)
-    {
-      temp = getNearestNode(coord, child, curClosesestNode, curShortDist);
-      if(temp == curClosesestNode)  // the call to that child didn't find a closer node
-      {
-        continue;
-      }
-      else  // update the values
-      {
-        curClosesestNode = temp;
-        curShortDist = euclideanDistance(temp->coord, coord);
-      }
-    }
-  }
-
-  return curClosesestNode;  // this should now be pointing to the closest node to the coordinate
-}
-
-Coord RrtPlanner::getUnusedRandomCoord()  //TODO make this actually pick a point not in the obstacles
-{
-  Coord potentialPoint = randomPoint(width, height);
-  while(myCoords.find(potentialPoint) != myCoords.end() && (*obstacleHash)[(int)potentialPoint.y][(int)potentialPoint.x])
-  {
-    potentialPoint = randomPoint(width, height);
-  }
-  return potentialPoint;
+  return rtreeQueryResults[0].second; // return the nearest node
 }
