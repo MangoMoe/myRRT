@@ -19,7 +19,8 @@ void display(deque<Coord>& path, vector<shared_ptr<Rect>>& obstacleRects, RrtPla
 
 	drawPath(path, HSL(100, 1.0, 0.3), HSL(150, 1.0, 0.5));
 
-  drawTree(planner.startNode, HSL(25, 1.0, 0.5));
+  drawTree(planner.startNode, HSL(200, 1.0, 0.5));
+	// cout << "Drew the tree" << endl;
 
   drawPoint(planner.startNode->coord, 10, HSL(25, 1.0, 0.5));
   drawPoint(planner.goalNode->coord, 10, HSL(50, 1.0, 0.5));
@@ -46,13 +47,15 @@ int main(int argc, char* argv[]) {
 	int height = 700;
 	bool isFullscreen = false;
 	int monitorNum = 0;
+	int saturationNumber = 1000;
 
 
 	// clang-format off
 	cxxopts::Options options("Example Planner", "A cool program for cool things");
 	options.add_options()
 		("f,fullscreen", "Enable Fullscreen", cxxopts::value(isFullscreen))
-		("m,monitor", "Set Monitor Number", cxxopts::value(monitorNum));
+		("m,monitor", "Set Monitor Number", cxxopts::value(monitorNum))
+		("s,saturate", "Set Saturation Amount", cxxopts::value(saturationNumber));
 	// clang-format on
 
 	options.parse(argc, argv);
@@ -74,21 +77,25 @@ int main(int argc, char* argv[]) {
 	auto displayCallback = [&path, &obstacleRects, &planner]() { display(path, obstacleRects, planner); };
 
 	auto lastPointAdd = glfwGetTime();
-	auto pointAddFrequency = 5.0;
+	auto pointAddFrequency = 1.0;
 	auto pointAddInterval = 1.0 / pointAddFrequency;
 
-	auto remainderCallback = [&lastPointAdd, &pointAddInterval, &planner, &path]() {
+	planner.saturate(saturationNumber);
+
+	auto remainderCallback = [&width, &height,&obstacleHash, &lastPointAdd, &pointAddInterval, &planner, &path]() {
     auto currentTime = glfwGetTime();
 		if (currentTime - lastPointAdd >= pointAddInterval) {
       lastPointAdd = currentTime;
-      planner.nextIteration();
+			//cout << "Timer activate" << endl;
+      //planner.nextIteration();
 
-      path = planner.getPath();
+      path = planner.getPath(randomOpenAreaPoint(width, height, obstacleHash));
     }
     else
     {
-      planner.nextIteration();
-      path = planner.getPath();
+			//cout << "Remaining time" << endl;
+      //planner.nextIteration();
+      //path = planner.getPath();
     }
 
   };

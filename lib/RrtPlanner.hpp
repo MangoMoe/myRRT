@@ -28,6 +28,8 @@ using namespace std;
 class RrtPlanner
 {
 private:
+  int nodeCount;
+
   int sampleGoal;
   bool pathCompleteBool;
   vector<vector<bool>>* obstacleHash;
@@ -35,7 +37,8 @@ private:
 
   Rtree myRtree;
 
-  const double MAX_DIST = 0.10;  // maximum distance between nodes
+  const double MAX_DIST = 10.0;  // maximum distance between nodes
+  const int MAX_NUM_NODES = 100000; // any more than this and there are too many nodes to draw on the tree;
 
 public:
   shared_ptr<Node> startNode, goalNode;
@@ -43,9 +46,12 @@ public:
   RrtPlanner(Coord start, Coord goal, int newWidth, int newHeight, vector<vector<bool>>* newObstacleHash);
   ~RrtPlanner();
   deque<Coord> getPath();
+  deque<Coord> getPath(Coord newGoal);
   bool pathComplete();
   void nextIteration();
   Coord getCoordInDerection(Coord nodeCoord, Coord goalCoord);
   shared_ptr<Node> getNearestNode(Coord coord);
-  shared_ptr<Node> getNearestNode(Coord coord, shared_ptr<Node> node, shared_ptr<Node> curClosesestNode, double curShortDist);
+  vector<shared_ptr<Node>>* getNearestNodes(Coord coord, int numNodes);
+  //shared_ptr<Node> getNearestNode(Coord coord, shared_ptr<Node> node, shared_ptr<Node> curClosesestNode, double curShortDist);
+  void saturate(int numNodes);
 };
